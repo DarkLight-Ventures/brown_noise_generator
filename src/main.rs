@@ -1,10 +1,10 @@
 extern crate rand;
-extern crate wav;
+extern crate hound;
 
 use rand::Rng;
 use std::fs::File;
 use std::i16;
-use wav::{BitDepth, Header};
+use hound::WavWriter;
 
 fn main() {
     let duration_secs = 10;
@@ -16,9 +16,16 @@ fn main() {
 
 fn generate_brown_noise(duration_secs: u32, sample_rate: u32, output_file: &str) {
     let num_samples = duration_secs * sample_rate;
-    let mut rng = rand::thread_rng();
 
-    let mut brown_noise = Vec::with_capacity(num_samples as usize);
+    let spec = hound::WavSpec {
+        channels: 1,
+        sample_rate: sample_rate,
+        bits_per_sample: 16,
+        sample_format: hound::SampleFormat::Int,
+    };
+
+    let mut writer = WavWriter::create(output_file, spec).unwrap();
+    let mut rng = rand::thread_rng();
     let mut current_sample = 0.0;
 
     for _ in 0..num_samples {
@@ -29,10 +36,8 @@ fn generate_brown_noise(duration_secs: u32, sample_rate: u32, output_file: &str)
         current_sample *= 0.5;
 
         let sample_int = (current_sample * i16::MAX as f32).round() as i16;
-        brown_noise.push(sample_int);
+        writer.write_sample(sample_int).unwrap();
     }
 
-    let header = Header::new(1, 1, sample_rate, BitDepth::Sixteen);
-    let mut writer = wav::Writer::new(File::create(output_file).unwrap(), header).unwrap();
-    writer.write_data(&brown_noise).unwrap();
+    writer.finalize().unwrap();
 }
