@@ -1,3 +1,6 @@
+extern crate rand;
+extern crate wav;
+
 use rand::Rng;
 use std::fs::File;
 use std::i16;
