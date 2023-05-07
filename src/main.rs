@@ -4,37 +4,40 @@ extern crate biquad;
 
 
 use biquad::*;
+use clap::Parser;
 use hound::WavWriter;
 use rand::Rng;
 use std::i16;
 use std::f32::consts::PI;
 
+#[derive(Clone, Debug, Parser)]
+#[clap(name = "Brown Noise Generator", version = "1.0", author = "Kelsea Blackwell")]
+struct Opts {
+    #[clap(short, long, default_value = "60")]
+    duration_secs: u32,
+
+    #[clap(short, long, default_value = "44100")]
+    sample_rate: u32,
+
+    #[clap(short, long, default_value = "brown_noise.wav")]
+    output_file: String,
+
+    #[clap(short, long, default_value = "900")]
+    cutoff_frequency: f32,
+}
 
 fn main() {
-    let duration_secs = 60;
-    let sample_rate = 44100;
-    let output_file_a = "white_noise.wav";
-    let output_file_b = "brown_noise.wav";
-    let output_file_c = "warbled15_brown_noise.wav";
-    let output_file_d = "warbled30_brown_noise.wav";
-    let output_file_e = "mixed_warbled.wav";
-    let output_file_f = "mixed.wav";
-    let cutoff_frequency = 900.0; // Hz
+    let opts = Opts::parse();
 
-    let brown_noise_samples = generate_white_noise(duration_secs, sample_rate);
-    let filtered_samples = apply_low_pass_filter(&brown_noise_samples, cutoff_frequency, sample_rate);
-    let warbled_samples_15 = apply_warble_effect(&filtered_samples, 0.15, sample_rate, 0.5, 0);
-    let warbled_samples_30 = apply_warble_effect(&warbled_samples_15, 0.15, sample_rate, 0.5, (sample_rate / 2).try_into().unwrap());
+    let brown_noise_samples = generate_white_noise(opts.duration_secs, opts.sample_rate);
+    let filtered_samples = apply_low_pass_filter(&brown_noise_samples, opts.cutoff_frequency, opts.sample_rate);
+    let warbled_samples_15 = apply_warble_effect(&filtered_samples, 0.15, opts.sample_rate, 0.5, 0);
+    let warbled_samples_30 = apply_warble_effect(&warbled_samples_15, 0.15, opts.sample_rate, 0.5, (opts.sample_rate / 2).try_into().unwrap());
 
     let mixed_warble = mix_wav_samples(&warbled_samples_15, &warbled_samples_30, 0.5);
     let mixed_sample = mix_wav_samples(&mixed_warble, &filtered_samples, 0.5);
 
-    write_wav_samples(output_file_b, sample_rate, &filtered_samples);
-    write_wav_samples(output_file_a, sample_rate, &brown_noise_samples);
-    write_wav_samples(output_file_c, sample_rate, &warbled_samples_15);
-    write_wav_samples(output_file_d, sample_rate, &warbled_samples_30);
-    write_wav_samples(output_file_e, sample_rate, &mixed_warble);
-    write_wav_samples(output_file_f, sample_rate, &mixed_sample);
+    write_wav_samples(&opts.output_file, opts.sample_rate, &mixed_sample);
 }
 
 
