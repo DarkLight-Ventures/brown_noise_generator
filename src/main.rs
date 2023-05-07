@@ -17,17 +17,24 @@ fn main() {
     let output_file_b = "brown_noise.wav";
     let output_file_c = "warbled15_brown_noise.wav";
     let output_file_d = "warbled30_brown_noise.wav";
+    let output_file_e = "mixed_warbled.wav";
+    let output_file_f = "mixed.wav";
     let cutoff_frequency = 900.0; // Hz
 
     let brown_noise_samples = generate_white_noise(duration_secs, sample_rate);
     let filtered_samples = apply_low_pass_filter(&brown_noise_samples, cutoff_frequency, sample_rate);
-    let warbled_samples_15 = apply_warble_effect(&filtered_samples, 0.15, sample_rate, 0.5);
-    let warbled_samples_30 = apply_warble_effect(&warbled_samples_15, 0.15, sample_rate, 0.5);
+    let warbled_samples_15 = apply_warble_effect(&filtered_samples, 0.15, sample_rate, 0.5, 0);
+    let warbled_samples_30 = apply_warble_effect(&warbled_samples_15, 0.15, sample_rate, 0.5, (sample_rate / 2).try_into().unwrap());
+
+    let mixed_warble = mix_wav_samples(&warbled_samples_15, &warbled_samples_30, 0.5);
+    let mixed_sample = mix_wav_samples(&mixed_warble, &filtered_samples, 0.5);
 
     write_wav_samples(output_file_b, sample_rate, &filtered_samples);
     write_wav_samples(output_file_a, sample_rate, &brown_noise_samples);
     write_wav_samples(output_file_c, sample_rate, &warbled_samples_15);
     write_wav_samples(output_file_d, sample_rate, &warbled_samples_30);
+    write_wav_samples(output_file_e, sample_rate, &mixed_warble);
+    write_wav_samples(output_file_f, sample_rate, &mixed_sample);
 }
 
 
@@ -48,16 +55,23 @@ fn apply_low_pass_filter(samples: &[i16], cutoff_frequency: f32, sample_rate: u3
 }
 
 
-fn apply_warble_effect(samples: &[i16], lfo_frequency: f32, sample_rate: u32, depth: f32) -> Vec<i16> {
+fn apply_warble_effect(samples: &[i16], lfo_frequency: f32, sample_rate: u32, depth: f32, offset: usize) -> Vec<i16> {
     let mut warbled_samples = vec![0i16; samples.len()];
     let lfo_increment = 2.0 * PI * lfo_frequency / (sample_rate as f32);
 
     let mut lfo_phase: f32 = 0.0;
 
     for (input_sample, output_sample) in samples.iter().zip(warbled_samples.iter_mut()) {
-        let lfo = (lfo_phase.sin() + 1.0) * 0.5 * depth + (1.0 - depth);
-        *output_sample = (*input_sample as f32 * lfo) as i16;
-        lfo_phase += lfo_increment;
+        if i >= offset {
+            let lfo = (lfo_phase.sin() + 1.0) * 0.5 * depth + (1.0 - depth);
+            *output_sample = (*input_sample as f32 * lfo) as i16;
+            lfo_phase += lfo_increment;
+        } else {
+            *output_sample = *input_sample;
+        }
+        // let lfo = (lfo_phase.sin() + 1.0) * 0.5 * depth + (1.0 - depth);
+        // *output_sample = (*input_sample as f32 * lfo) as i16;
+        // lfo_phase += lfo_increment;
     }
 
     warbled_samples
