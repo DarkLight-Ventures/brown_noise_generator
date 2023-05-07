@@ -61,7 +61,13 @@ fn apply_warble_effect(samples: &[i16], lfo_frequency: f32, sample_rate: u32, de
 
     let mut lfo_phase: f32 = 0.0;
 
-    for (input_sample, output_sample) in samples.iter().zip(warbled_samples.iter_mut()) {
+    // for (input_sample, output_sample) in samples.iter().zip(warbled_samples.iter_mut()) {
+    //     let lfo = (lfo_phase.sin() + 1.0) * 0.5 * depth + (1.0 - depth);
+    //     *output_sample = (*input_sample as f32 * lfo) as i16;
+    //     lfo_phase += lfo_increment;
+    // }
+
+    for (i, (input_sample, output_sample)) in samples.iter().zip(warbled_samples.iter_mut()).enumerate() {
         if i >= offset {
             let lfo = (lfo_phase.sin() + 1.0) * 0.5 * depth + (1.0 - depth);
             *output_sample = (*input_sample as f32 * lfo) as i16;
@@ -69,9 +75,6 @@ fn apply_warble_effect(samples: &[i16], lfo_frequency: f32, sample_rate: u32, de
         } else {
             *output_sample = *input_sample;
         }
-        // let lfo = (lfo_phase.sin() + 1.0) * 0.5 * depth + (1.0 - depth);
-        // *output_sample = (*input_sample as f32 * lfo) as i16;
-        // lfo_phase += lfo_increment;
     }
 
     warbled_samples
